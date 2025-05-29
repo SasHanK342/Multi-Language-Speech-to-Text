@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Multi-Language Speech to Text</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 2rem auto;
+      background: #ccccf8;
+      color: #1e194f;
+      max-width: 600px;
+      padding: 0 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 1.5rem;
+      letter-spacing: 1.2px;
+    }
+    label {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #34495e;
+      display: block;
+      margin-bottom: 8px;
+    }
+    select {
+      width: 100%;
+      max-width: 320px;
+      padding: 10px 14px;
+      border: 2px solid #2980b9;
+      border-radius: 8px;
+      font-size: 1rem;
+      color: #34495e;
+      background: white;
+      transition: border-color 0.3s ease;
+      cursor: pointer;
+      margin-bottom: 2rem;
+    }
+    select:hover, select:focus {
+      border-color: #1abc9c;
+      outline: none;
+    }
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 2rem;
+      max-width: 320px;
+    }
+    .btn-group button {
+      flex: 1;
+      background: #2980b9;
+      border: none;
+      padding: 12px 0;
+      color: white;
+      font-weight: 600;
+      font-size: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgb(41 128 185 / 0.4);
+      cursor: pointer;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      user-select: none;
+    }
+    .btn-group button:disabled {
+      background: #95a5a6;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+    .btn-group button:hover:not(:disabled) {
+      background: #1abc9c;
+      box-shadow: 0 6px 12px rgb(26 188 156 / 0.6);
+    }
+    #result {
+      background: rgb(245, 245, 245);
+      border: 2px solid #bdc3c7;
+      border-radius: 12px;
+      min-height: 180px;
+      padding: 20px 24px;
+      font-size: 1.3rem;
+      line-height: 1.6;
+      color: #2c3e50;
+      box-shadow: inset 0 3px 7px rgb(0 0 0 / 0.03);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      user-select: text;
+      transition: border-color 0.3s ease;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    #result:empty::before {
+      content: 'Your speech will appear here...';
+      color: #7f8c8d;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Speech to Text (Multi-Language)</h1>
+
+  <label for="language">Choose Language:</label>
+  <select id="language" aria-label="Select language for speech recognition">
+    <option value="en-US">English (US)</option>
+    <option value="te-IN">Telugu (India)</option>
+    <option value="hi-IN">Hindi (India)</option>
+    <option value="ta-IN">Tamil (India)</option>
+    <option value="kn-IN">Kannada (India)</option>
+    <option value="mr-IN">Marathi (India)</option>
+    <option value="gu-IN">Gujarati (India)</option>
+    <option value="bn-IN">Bengali (India)</option>
+    <option value="ur-PK">Urdu (India)</option>
+  </select>
+
+  <div class="btn-group">
+    <button id="startBtn" aria-label="Start Listening">Start Listening</button>
+    <button id="stopBtn" aria-label="Stop Listening" disabled>Stop Listening</button>
+    <button id="clearBtn" aria-label="Clear Text">Clear Text</button>
+  </div>
+
+  <div id="result" aria-live="polite" role="region"></div>
+
+  <script>
+    const languageSelect = document.getElementById('language');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const resultDiv = document.getElementById('result');
+
+    let recognition;
+    let isListening = false;
+
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Sorry, your browser does not support Speech Recognition. Please use Google Chrome.');
+    } else {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = languageSelect.value;
+
+      recognition.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        resultDiv.textContent = finalTranscript + interimTranscript;
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      };
+    }
+
+    startBtn.onclick = () => {
+      if (!recognition) return;
+      recognition.lang = languageSelect.value;
+      recognition.start();
+      isListening = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    };
+
+    stopBtn.onclick = () => {
+      if (!recognition) return;
+      recognition.stop();
+      isListening = false;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    };
+
+    clearBtn.onclick = () => {
+      resultDiv.textContent = '';
+    };
+  </script>
+</body>
+</html>
